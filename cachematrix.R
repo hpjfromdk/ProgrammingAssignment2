@@ -17,8 +17,8 @@ makeCacheMatrix <- function(x = matrix(,0,0),globen=FALSE) {
 ## Methods  :
 ##          $set(y) Save y as the cached matrix MM
 ##          $get()  Retrieve the cached matrix MM
-##          $setInvMat(y) Save y as the cached matrix IMM (** ref usage ) 
-##          $getInvMat() Retrieve the cached matrix IMM (** ref usage )
+##          $setInvMat(y) Save y as the cached matrix IMM (see usage ) 
+##          $getInvMat() Retrieve the cached matrix IMM (see usage )
 ##********************************************************************
 ## Usage    :
 ##          The function can be assigned to a list object either
@@ -28,8 +28,9 @@ makeCacheMatrix <- function(x = matrix(,0,0),globen=FALSE) {
 ##          cached variable MM
 ##          ex1: MyListObj <- makeCacheMatrix(myMat)
 ##          Both these assigments will reset the cached variable IMM
-##          used to hold the inverted matrix NULL
-##
+##          used to hold the inverted matrix to NULL flagging the
+##          need for matrix inversion of the new matrix
+##    
 ##          Once assigned, the variable MM can be set(reset) or
 ##          retrieved using the setMat() and the getMat() functions
 ##          The setMat() function will also initiate variable IMM
@@ -56,6 +57,11 @@ makeCacheMatrix <- function(x = matrix(,0,0),globen=FALSE) {
 ##                  matrix inversion function since no checks are 
 ##                  performed to confirm this assumption according  
 ##                  to design specs
+##          0.002   2015-03-22/hpj
+##                  Modified method of checking new vs cached version
+##                  to use the identical() function insteas of matrix
+##                  element sums. Although slightly slower, the latter
+##                  method is more accurate    
 ##********************************************************************        
  
     #Initiate the matrix M and its checksum and the IMM matrix variables
@@ -69,18 +75,15 @@ makeCacheMatrix <- function(x = matrix(,0,0),globen=FALSE) {
     if (globen == FALSE) {
         IMM <- NULL
         MM  <- NULL
-        MM.chk.sum <- 0
     }
     
     #Set() is a function used to cache the variable(matrix) MM
     #To aviod repeatedly writing the same matrix
     #and thus triggering a recompute of the inverse matrix
-    #the total sum of the matrix elements is computed and
-    #saved in MM.chk.sum. For all calls of set(), except the
-    #first, a new matrix sum will be computed and compared to
-    #the cached checksum. If the difference is below a mininum
-    #threshold ( i.e. the diference is zero) the cahched MM matrix
-    #is not updated/rewritten 
+    #the new matrix is compared to the cashed version if
+    #any using the indentical() function 
+    #For all calls of set(), except the first, if new matrix 
+    #is not identical the cache is updated with the new version
     set <- function(y) {
         
         if (sum(dim(y)) == 0) { #
@@ -88,18 +91,15 @@ makeCacheMatrix <- function(x = matrix(,0,0),globen=FALSE) {
             #reset allcashed variables
             IMM <<- NULL
             MM <<- NULL
-            MM.chk.sum <<- 0
        } else {
-            #Compute matrix element checksum for new data
-            y.chk.sum <- sum(colSums(y))
-            #Compare checksums and do update only if not equal
-            if (abs(y.chk.sum - MM.chk.sum) > 1e-12) {
+            #Compare new and cached versions of the matrix
+            #and update if different 
+            if (!identical(y,MM)) {
                 #Cache the new matrix in variable MM 
                 MM <<- y
                 #Assign NULL to the cached IMM variable
+                #to flag need for new inversion
                 IMM <<- NULL
-                #Save the matrix checksum of the MM variable
-                MM.chk.sum <<- y.chk.sum 
             }
         }    
     }
